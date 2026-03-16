@@ -163,3 +163,5 @@ cython_debug/
 
 # Miscellaneous
 .DS_Store
+documents/*
+!documents/.gitkeep
