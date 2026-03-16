@@ -20,7 +20,7 @@ A Gradio web app showcasing multilingual semantic search and retrieval-augmented
 
 The app uses a SEA-LION embedding model from HuggingFace. By default it uses `aisingapore/SEA-LION-Embedding-300M`, which is downloaded automatically on first run into the HuggingFace cache (`~/.cache/huggingface/`).
 
-Browse the full collection of SEA-LION embedding models here: <https://huggingface.co/collections/aisingapore/sea-mbert-and-sea-embedding>
+Browse the full collection of SEA-LION embedding models here: <https://huggingface.co/aisingapore/collections>
 
 To pre-download a model manually:
 
