@@ -18,7 +18,7 @@ A Gradio web app showcasing multilingual semantic search and retrieval-augmented
 
 ## Embedding Model
 
-The app uses a SEA-LION embedding model from HuggingFace. By default it uses `aisingapore/SEA-LION-Embedding-300M`, which is downloaded automatically on first run into the HuggingFace cache (`~/.cache/huggingface/`).
+The app uses a SEA-LION embedding model from HuggingFace. By default it uses `aisingapore/SEA-LION-ModernBERT-Embedding-300M`, which is downloaded automatically on first run into the HuggingFace cache (`~/.cache/huggingface/`).
 
 Browse the full collection of SEA-LION embedding models here: <https://huggingface.co/aisingapore/collections>
 
@@ -26,7 +26,7 @@ To pre-download a model manually:
 
 ```bash
 pip install huggingface_hub
-huggingface-cli download aisingapore/SEA-LION-Embedding-300M
+hf download aisingapore/SEA-LION-ModernBERT-Embedding-300M
 ```
 
 > **Note:** If the model is saved to a non-default location (i.e. not `~/.cache/huggingface/`), set the `HF_CACHE_PATH` environment variable to point to that directory so the app can find it.
@@ -70,10 +70,10 @@ vLLM, Amazon Bedrock Access Gateway, Google Vertex AI, and others are supported.
 
 ```bash
 cp .env.example .env        # edit LLM_MODEL, OPENAI_BASE_URL, OPENAI_API_KEY
-docker compose up --build
+docker compose up --build -d
 ```
 
-Open <http://localhost:7860>.
+Open <http://localhost:7860> once the Gradio app container is running.
 
 ChromaDB and the Gradio app run as separate services. Document index data is persisted in a named Docker volume (`chroma_data`).
 
@@ -113,11 +113,11 @@ Copy `.env.example` to `.env` and edit as needed. All variables are optional —
 
 | Variable | Default | Description |
 |---|---|---|
-| `EMBEDDING_MODEL` | `aisingapore/SEA-LION-Embedding-300M` | HuggingFace model ID for embeddings |
+| `EMBEDDING_MODEL` | `aisingapore/SEA-LION-ModernBERT-Embedding-300M` | HuggingFace model ID for embeddings |
 | `HF_CACHE_PATH` | *(unset — uses `~/.cache/huggingface/`)* | Override HuggingFace cache directory; required when the model is pre-downloaded to a non-default path and when running in Docker with a mounted model cache |
 | `OPENAI_BASE_URL` | `http://host.docker.internal:11434/v1` | LLM API base URL, use `http://localhost:11434/v1` if running local dev setup |
 | `OPENAI_API_KEY` | `ollama` | LLM API key (`ollama` for local Ollama) |
-| `LLM_MODEL` | `llama3` | Model name passed to the LLM API |
+| `LLM_MODEL` | `aisingapore/Qwen-SEA-LION-v4-32B-IT` | Model name passed to the LLM API |
 | `LLM_TEMPERATURE` | `0.3` | Generation temperature for RAG answers |
 | `CHROMA_HOST` | `localhost` | ChromaDB host (`chromadb` when using Docker Compose) |
 | `CHROMA_PORT` | `8000` | ChromaDB port |
