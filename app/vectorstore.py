@@ -72,12 +72,28 @@ def upsert_chunks(
         raise RuntimeError(f"Failed to store chunks for '{source}'.")
 
 
+def _iter_all_metadatas(collection: Collection):
+    offset = 0
+    page_size = 500
+    while True:
+        results = collection.get(
+            include=["metadatas"],
+            limit=page_size,
+            offset=offset,
+        )
+        if not results["ids"]:
+            break
+        yield from results["metadatas"]
+        if len(results["ids"]) < page_size:
+            break
+        offset += page_size
+
+
 def delete_document(source: str) -> int:
     try:
         collection = get_collection()
         if any(c in source for c in ("*", "?", "[", "]")):
-            all_results = collection.get(include=["metadatas"])
-            sources = {m["source"] for m in all_results["metadatas"]}
+            sources = {m["source"] for m in _iter_all_metadatas(collection)}
             matched = [s for s in sources if fnmatch.fnmatch(s, source)]
             total = 0
             for s in matched:
@@ -135,20 +151,29 @@ def search(
 def list_documents() -> list[dict[str, Any]]:
     try:
         collection = get_collection()
-        results = collection.get(include=["metadatas"])
-        if not results["ids"]:
-            return []
-
         docs: dict[str, dict] = {}
-        for meta in results["metadatas"]:
-            source = meta["source"]
-            if source not in docs:
-                docs[source] = {
-                    "source": source,
-                    "chunk_count": 0,
-                    "last_modified": meta.get("last_modified", 0),
-                }
-            docs[source]["chunk_count"] += 1
+        offset = 0
+        page_size = 500
+        while True:
+            results = collection.get(
+                include=["metadatas"],
+                limit=page_size,
+                offset=offset,
+            )
+            if not results["ids"]:
+                break
+            for meta in results["metadatas"]:
+                source = meta["source"]
+                if source not in docs:
+                    docs[source] = {
+                        "source": source,
+                        "chunk_count": 0,
+                        "last_modified": meta.get("last_modified", 0),
+                    }
+                docs[source]["chunk_count"] += 1
+            if len(results["ids"]) < page_size:
+                break
+            offset += page_size
 
         return list(docs.values())
     except Exception:

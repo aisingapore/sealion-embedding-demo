@@ -22,26 +22,35 @@ def _folder_for(source: str) -> str:
     return "documents/"
 
 
-def list_docs() -> list[list]:
+def _docs_to_markdown(docs: list[dict]) -> str:
+    if not docs:
+        return "_No indexed documents._"
+    lines = [
+        "| Document Name | Chunks | Last Modified | Source Folder |",
+        "| --- | ---: | --- | --- |",
+    ]
+    for doc in sorted(docs, key=lambda d: d["source"]):
+        lines.append(
+            "| {source} | {chunk_count} | {last_modified} | {folder} |".format(
+                source=doc["source"],
+                chunk_count=doc["chunk_count"],
+                last_modified=_format_mtime(doc.get("last_modified", 0)),
+                folder=_folder_for(doc["source"]),
+            )
+        )
+    return "\n".join(lines)
+
+
+def list_docs() -> str:
     try:
         docs = vectorstore.list_documents()
-        rows = []
-        for doc in sorted(docs, key=lambda d: d["source"]):
-            rows.append(
-                [
-                    doc["source"],
-                    doc["chunk_count"],
-                    _format_mtime(doc.get("last_modified", 0)),
-                    _folder_for(doc["source"]),
-                ]
-            )
-        return rows
+        return _docs_to_markdown(docs)
     except Exception:
         logger.error("Failed to list documents", exc_info=True)
         raise gr.Error("Failed to list documents. Please try again.")
 
 
-def remove_doc(source: str) -> tuple[str, list[list]]:
+def remove_doc(source: str) -> tuple[str, str]:
     if not source or not source.strip():
         return "Please enter a document name to remove.", list_docs()
     pattern = source.strip()
@@ -49,7 +58,7 @@ def remove_doc(source: str) -> tuple[str, list[list]]:
         deleted = vectorstore.delete_document(pattern)
     except Exception:
         logger.error("Failed to remove document '%s'", pattern, exc_info=True)
-        return "Failed to remove document. Please try again.", []
+        return "Failed to remove document. Please try again.", "_Could not refresh list._"
     if deleted == 0:
         return f"No documents matched '{pattern}'.", list_docs()
     return (
@@ -58,7 +67,7 @@ def remove_doc(source: str) -> tuple[str, list[list]]:
     )
 
 
-def reindex(progress=gr.Progress()) -> tuple[str, list[list]]:
+def reindex(progress=gr.Progress()) -> tuple[str, str]:
     progress(0, desc="Starting re-index...")
     try:
         indexer.scan_and_index(
@@ -67,7 +76,7 @@ def reindex(progress=gr.Progress()) -> tuple[str, list[list]]:
         )
     except Exception:
         logger.error("Re-index failed", exc_info=True)
-        return "Re-index failed. Please try again.", []
+        return "Re-index failed. Please try again.", "_Could not refresh list._"
     progress(1, desc="Done")
     return "Re-index complete.", list_docs()
 
@@ -80,11 +89,9 @@ def build_tab() -> gr.Tab:
         )
 
         refresh_btn = gr.Button("Refresh List")
-        docs_table = gr.Dataframe(
-            headers=["Document Name", "Chunk Count", "Last Modified", "Source Folder"],
-            datatype=["str", "number", "str", "str"],
+        docs_table = gr.Markdown(
+            value="_Click **Refresh List** to load indexed documents._",
             label="Indexed Documents",
-            interactive=False,
         )
 
         with gr.Row():
