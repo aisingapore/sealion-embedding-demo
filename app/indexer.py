@@ -124,6 +124,20 @@ def read_file(path: Path) -> str:
         raise ValueError(f"Unsupported file type: {ext}")
 
 
+def _split_oversized_paragraph(
+    para: str, chunk_size: int, chunk_overlap: int
+) -> list[str]:
+    if len(para) <= chunk_size:
+        return [para]
+    parts = []
+    start = 0
+    step = max(1, chunk_size - chunk_overlap)
+    while start < len(para):
+        parts.append(para[start : start + chunk_size])
+        start += step
+    return parts
+
+
 def chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
     """
     Sliding window chunker with paragraph boundary preference.
@@ -132,7 +146,16 @@ def chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
     Each new chunk starts with trailing paragraphs from the previous chunk,
     keeping their combined length within `chunk_overlap` characters.
     """
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
     paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+    # Files with only single newlines (no blank lines) become one giant paragraph.
+    if len(paragraphs) == 1 and len(paragraphs[0]) > chunk_size:
+        paragraphs = [p.strip() for p in paragraphs[0].split("\n") if p.strip()]
+
+    expanded: list[str] = []
+    for para in paragraphs:
+        expanded.extend(_split_oversized_paragraph(para, chunk_size, chunk_overlap))
+    paragraphs = expanded
 
     chunks = []
     current = []
